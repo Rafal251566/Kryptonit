@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Diagnostics;
+using System.IO;
 using System.Printing.IndexedProperties;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -54,7 +55,6 @@ namespace DESAlgorithm
         public static string Encrypt(string text)
         {
             byte[] data = Encoding.ASCII.GetBytes(text);
-            Trace.WriteLine(Encoding.ASCII.GetBytes(text));
             return Convert.ToBase64String(DESAlgorithm(data,true));
         }
 
@@ -64,13 +64,10 @@ namespace DESAlgorithm
             return Encoding.ASCII.GetString(DESAlgorithm(data,false));
         }
 
+
         //Metoda przerabia tekst wpisany przez uzytkownika na bloki bajtów
         private static byte[] DESAlgorithm(byte[] data, bool toEncryption) 
         {
-            for (int z = 0; z < data.Length; z++)
-            {
-                Trace.WriteLine(data[z] + " przed konwersja na binara");
-            }
             data = fillMissingBits(data);
             byte[] permutatedKey = Permutate(key, keyPermutation);
             byte[] leftKeyPart = new byte[permutatedKey.Length/2];
@@ -157,7 +154,6 @@ namespace DESAlgorithm
             int keyOffset = toEncryption ? 0 : 15;
 
             block = ConvertToBinary(block,8);
-            Trace.WriteLine(string.Join("", block));
             block = Permutate(block,initialPermutation);
             byte[] left = new byte[block.Length/2];
             byte[] right = new byte[block.Length / 2];
@@ -179,26 +175,17 @@ namespace DESAlgorithm
                 }
 
                 byte[] substitutionResult = ConvertToBinary(sBoxValues, 4);
-                Trace.WriteLine(string.Join("", substitutionResult));
                 byte[] pBox = Permutate(substitutionResult, pBoxPermutation);
                 right = XOR(left, pBox);
                 left = temp;
             }
 
             byte[] output = new byte[64];
-            Trace.WriteLine(string.Join("", left));
-            Trace.WriteLine(string.Join("", right));
             Array.Copy(right, 0, output, 0, 32);
             Array.Copy(left, 0, output, 32, 32);
-            Trace.WriteLine(string.Join("", output));
             output = Permutate(output, finalPermutation);
-            Trace.WriteLine(string.Join("", output));
-
             output = convertBitsToBytes(output);
-            for (int z = 0; z < output.Length; z++)
-            {
-                Trace.WriteLine(output[z] + " po zmianie na BAJTY ");
-            }
+
             return output;
         }
 
@@ -266,8 +253,6 @@ namespace DESAlgorithm
             byte[] column = new byte[] { group[1], group[2], group[3], group[4] };
             byte[] row = new byte[] { group[0], group[5] };
 
-            String columnString = column[0] +" "+ column[1] + " " + column[2] + " " + column[3];
-            String rowString = row[0] + " " + row[1];
             return ConvertToInt(row) * 16 + ConvertToInt(column);
         }
 
