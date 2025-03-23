@@ -71,6 +71,7 @@ namespace DESAlgorithm
             {
                 Trace.WriteLine(data[z] + " przed konwersja na binara");
             }
+            data = fillMissingBits(data);
             byte[] permutatedKey = Permutate(key, keyPermutation);
             byte[] leftKeyPart = new byte[permutatedKey.Length/2];
             byte[] rightKeyPart = new byte[permutatedKey.Length/2];
@@ -91,9 +92,13 @@ namespace DESAlgorithm
             for (int i = 0; i < data.Length; i += 8)
             {
                 byte[] block = new byte[8];
-                Array.Copy(data, i, block, 0, 8); //wywali exception jak tekst nie bedzie skladal sie z 8 bajtowych blokow
+                Array.Copy(data, i, block, 0, 8);
                 byte[] resultBlock = ProcessBlock(block, toEncryption);
                 Array.Copy(resultBlock, 0, processedData, i, 8);
+            }
+            if (!toEncryption)
+            {
+                processedData = removeMissingBits(processedData);
             }
             return processedData;
         }
@@ -278,6 +283,35 @@ namespace DESAlgorithm
                 }
             }
             return bytes;
+        }
+
+        //Metoda dodająca brakujące bajty jeśli wpisana przez uzytkownika wiadomosc nie jest wielokrotnosca 8 bajtow
+        private static byte[] fillMissingBits(byte[] data)
+        {
+            int howManyMissing = 8 - (data.Length % 8);
+            if (howManyMissing == 8)
+            {
+                return data;
+            }
+
+            byte[] filledBits = new byte[data.Length + howManyMissing];
+            Array.Copy(data, filledBits, data.Length);
+            for (int i = data.Length; i < filledBits.Length; i++)
+            {
+                filledBits[i] = (byte)howManyMissing;
+            }
+            return filledBits;
+        }
+
+        //Metoda usuwa dodatkowe bajty dodane przez metode fillMissingBits
+        private static byte[] removeMissingBits(byte[] data)
+        {
+            int howManyAdded = data[data.Length - 1];
+            if (howManyAdded >= 1 && howManyAdded <= 8)
+            {
+                return data.Take(data.Length - howManyAdded).ToArray();
+            }
+            return data;
         }
 
     }
