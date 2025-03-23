@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media.Media3D;
 
 namespace DESAlgorithm
@@ -18,6 +19,7 @@ namespace DESAlgorithm
         private static byte[] compressionPermutation = { 14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4, 26, 8, 16, 7, 27, 20, 13, 2, 41, 52, 31, 37, 47, 55, 30, 40, 51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32 };
         private static byte[] keyPermutation = { 57, 49, 41, 33, 25, 17, 9, 1, 58, 50, 42, 34, 26, 18, 10, 2, 59, 51, 43, 35, 27, 19, 11, 3, 60, 52, 44, 36, 63, 55, 47, 39, 31, 23, 15, 7, 62, 54, 46, 38, 30, 22, 14, 6, 61, 53, 45, 37, 29, 21, 13, 5, 28, 20, 12, 4 };
         private static byte[] expansionPermutation = { 32, 1, 2, 3, 4, 5, 4, 5, 6, 7, 8, 9, 8, 9, 10, 11, 12, 13, 12, 13, 14, 15, 16, 17, 16, 17, 18, 19, 20, 21, 20, 21, 22, 23, 24, 25, 24, 25, 26, 27, 28, 29, 28, 29, 30, 31, 32, 1 };
+        private static byte[] pBoxPermutation = { 16, 7, 20, 21, 29, 12, 28, 17, 1, 15, 23, 26, 5, 18, 31, 10, 2, 8, 24, 14, 32, 27, 3, 9, 19, 13, 30, 6, 22, 11, 4, 25 };
         private static byte[] keyShifts = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1 };
         private static byte[][] SBoxes = new byte[][]{
             new byte[]{14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7,  0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8,  4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0,  15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13},
@@ -51,19 +53,19 @@ namespace DESAlgorithm
 
         public static string Encrypt(string text)
         {
-            byte[] data = Encoding.UTF8.GetBytes(text);
-            Trace.WriteLine(Encoding.UTF8.GetBytes(text));
-            return Convert.ToBase64String(DESAlgorithm(data));
+            byte[] data = Encoding.ASCII.GetBytes(text);
+            Trace.WriteLine(Encoding.ASCII.GetBytes(text));
+            return Convert.ToBase64String(DESAlgorithm(data,true));
         }
 
         public static string Decrypt(string encryptedText)
         {
             byte[] data = Convert.FromBase64String(encryptedText);
-            return Encoding.UTF8.GetString(DESAlgorithm(data));
+            return Encoding.ASCII.GetString(DESAlgorithm(data,false));
         }
 
         //Metoda przerabia tekst wpisany przez uzytkownika na bloki bajtów
-        private static byte[] DESAlgorithm(byte[] data) //wersja początkowa cosik nie chodzi dekrypcja
+        private static byte[] DESAlgorithm(byte[] data, bool toEncryption) 
         {
             for (int z = 0; z < data.Length; z++)
             {
@@ -90,8 +92,8 @@ namespace DESAlgorithm
             {
                 byte[] block = new byte[8];
                 Array.Copy(data, i, block, 0, 8); //wywali exception jak tekst nie bedzie skladal sie z 8 bajtowych blokow
-                byte[] resultBlock = ProcessBlock(block);
-                Array.Copy(resultBlock, 0, processedData, i, 8); 
+                byte[] resultBlock = ProcessBlock(block, toEncryption);
+                Array.Copy(resultBlock, 0, processedData, i, 8);
             }
             return processedData;
         }
@@ -144,19 +146,13 @@ namespace DESAlgorithm
 
    
         //Metoda dzieli pełny 8 bajtowy blok na dwa 4 bajtowe (lewy i prawy) i pozniej stosuje sieć Feistela
-        private static byte[] ProcessBlock(byte[] block)
+        private static byte[] ProcessBlock(byte[] block , bool toEncryption)
         {
+            int keyDirection = toEncryption ? 1 : -1;
+            int keyOffset = toEncryption ? 0 : 15;
 
-            for (int z = 0; z < block.Length; z++)
-            {
-                Trace.WriteLine(block[z] + " BLOK przed konwersja na binara");
-            }
             block = ConvertToBinary(block,8);
             Trace.WriteLine(string.Join("", block));
-            for (int n = 0; n < 64; n++)
-            {
-                Trace.WriteLine(block[n] + " converted to BINARY");
-            }
             block = Permutate(block,initialPermutation);
             byte[] left = new byte[block.Length/2];
             byte[] right = new byte[block.Length / 2];
@@ -166,38 +162,41 @@ namespace DESAlgorithm
             for (int i = 0; i < 16; i++)
             {
                 byte[] temp = right;
-                right = Permutate(right,expansionPermutation);
-                right = XOR(right, subKeys[i]);
-                byte[][] sBoxGroups = convertToGroups(right,8,6);
+                right = Permutate(right, expansionPermutation);
+                right = XOR(right, subKeys[keyOffset + i * keyDirection]);
+
+                byte[][] sBoxGroups = convertToGroups(right, 8, 6);
                 byte[] sBoxValues = new byte[8];
+
                 for (int j = 0; j < sBoxGroups.Length; j++)
                 {
                     sBoxValues[j] = (SBoxes[j][getSboxIndex(sBoxGroups[j])]);
-                    Trace.WriteLine(sBoxValues[j] + " sbox value to be converted");
                 }
-                byte[] substitutionResult = ConvertToBinary(sBoxValues,4);
-                Trace.WriteLine(string.Join("", substitutionResult));
 
-                right = XOR(left, FeistelFunction(right, key));
+                byte[] substitutionResult = ConvertToBinary(sBoxValues, 4);
+                Trace.WriteLine(string.Join("", substitutionResult));
+                byte[] pBox = Permutate(substitutionResult, pBoxPermutation);
+                right = XOR(left, pBox);
                 left = temp;
             }
 
-            byte[] output = new byte[8];
-            Array.Copy(left, 0, output, 0, 4);
-            Array.Copy(right, 0, output, 4, 4);
+            byte[] output = new byte[64];
+            Trace.WriteLine(string.Join("", left));
+            Trace.WriteLine(string.Join("", right));
+            Array.Copy(right, 0, output, 0, 32);
+            Array.Copy(left, 0, output, 32, 32);
+            Trace.WriteLine(string.Join("", output));
+            output = Permutate(output, finalPermutation);
+            Trace.WriteLine(string.Join("", output));
+
+            output = convertBitsToBytes(output);
+            for (int z = 0; z < output.Length; z++)
+            {
+                Trace.WriteLine(output[z] + " po zmianie na BAJTY ");
+            }
             return output;
         }
 
-        //Do spawdzenia = każde źródło podaje innego feistela
-        private static byte[] FeistelFunction(byte[] halfBlock, byte[] key) //
-        {
-            byte[] result = new byte[halfBlock.Length];
-            for (int i = 0; i < halfBlock.Length; i++)
-            {
-                result[i] = (byte)(halfBlock[i] ^ key[i % key.Length]);
-            }
-            return result;
-        }
 
         //Metoda dokonująca operacji XOR na zadanych bajtach
         private static byte[] XOR(byte[] a, byte[] b)
@@ -264,10 +263,21 @@ namespace DESAlgorithm
 
             String columnString = column[0] +" "+ column[1] + " " + column[2] + " " + column[3];
             String rowString = row[0] + " " + row[1];
-            Trace.WriteLine(columnString + " kolumna");
-            Trace.WriteLine(rowString + " rzad");
-            Trace.WriteLine(ConvertToInt(row) * 16 + ConvertToInt(column));
             return ConvertToInt(row) * 16 + ConvertToInt(column);
+        }
+
+        //Metoda konwertuje tablice skladajaca sie z bitow do tablicy skladajacej sie z bajtow
+        static byte[] convertBitsToBytes(byte[] bits)
+        {
+            byte[] bytes = new byte[bits.Length / 8];
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    bytes[i] = (byte)((bytes[i] << 1) | bits[i * 8 + j]);
+                }
+            }
+            return bytes;
         }
 
     }
