@@ -48,8 +48,8 @@ namespace DESAlgorithm
         //Obsługa przycisku
         private void Decrypt_Click(object sender, RoutedEventArgs e)
         {
-            string text = InputText.Text;
-            OutputText.Text = Decrypt(text);
+            string text = OutputText.Text;
+            InputText.Text = Decrypt(text);
         }
 
         //Obsługa przycisku
