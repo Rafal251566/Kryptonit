@@ -43,6 +43,7 @@ namespace DESAlgorithm
         {
             string text = InputText.Text;
             OutputText.Text = Encrypt(text);
+            InputText.Text = "";
         }
 
         //Obsługa przycisku
@@ -50,6 +51,7 @@ namespace DESAlgorithm
         {
             string text = OutputText.Text;
             InputText.Text = Decrypt(text);
+            OutputText.Text = "";
         }
 
         //Obsługa przycisku
@@ -85,8 +87,16 @@ namespace DESAlgorithm
 
         public static string Decrypt(string encryptedText)
         {
-            byte[] data = Convert.FromBase64String(encryptedText);
-            return Encoding.ASCII.GetString(DESAlgorithm(data,false));
+            try
+            {
+                byte[] data = Convert.FromBase64String(encryptedText);
+                return Encoding.ASCII.GetString(DESAlgorithm(data, false));
+            }
+            catch (FormatException)
+            {
+                MessageBox.Show("Incorrect ciphertext format (Base64).", "Format error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return null;
+            }
         }
 
         public static void EncryptFile(string inputFilePath, string outputFilePath)
@@ -334,10 +344,13 @@ namespace DESAlgorithm
         //Metoda usuwa dodatkowe bajty dodane przez metode fillMissingBits
         private static byte[] removeAddedBits(byte[] data)
         {
-            int howManyAdded = data[data.Length - 1];
-            if (howManyAdded >= 1 && howManyAdded <= 8)
+            if (data.Length > 0)
             {
-                return data.Take(data.Length - howManyAdded).ToArray();
+                int howManyAdded = data[data.Length - 1];
+                if (howManyAdded >= 1 && howManyAdded <= 8)
+                {
+                    return data.Take(data.Length - howManyAdded).ToArray();
+                }
             }
             return data;
         }
