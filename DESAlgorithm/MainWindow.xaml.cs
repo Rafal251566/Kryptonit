@@ -52,6 +52,31 @@ namespace DESAlgorithm
             OutputText.Text = Decrypt(text);
         }
 
+        //Obsługa przycisku
+        private void EncryptFile_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string filePath = openFileDialog.FileName;
+                string encryptedFilePath = filePath + ".enc";
+                EncryptFile(filePath, encryptedFilePath);
+            }
+        }
+
+        //Obsługa przycisku
+        private void DecryptFile_Click(object sender, RoutedEventArgs e)
+        {
+            Microsoft.Win32.OpenFileDialog openFileDialog = new Microsoft.Win32.OpenFileDialog();
+            openFileDialog.Filter = "Encrypted Files (*.enc)|*.enc";
+            if (openFileDialog.ShowDialog() == true)
+            {
+                string filePath = openFileDialog.FileName;
+                string decryptedFilePath = filePath.Replace(".enc", ".dec");
+                DecryptFile(filePath, decryptedFilePath);
+            }
+        }
+
         public static string Encrypt(string text)
         {
             byte[] data = Encoding.ASCII.GetBytes(text);
@@ -63,6 +88,24 @@ namespace DESAlgorithm
             byte[] data = Convert.FromBase64String(encryptedText);
             return Encoding.ASCII.GetString(DESAlgorithm(data,false));
         }
+
+        public static void EncryptFile(string inputFilePath, string outputFilePath)
+        {
+                byte[] fileData = File.ReadAllBytes(inputFilePath);
+                byte[] encryptedData = DESAlgorithm(fileData, true);
+                File.WriteAllBytes(outputFilePath, encryptedData);
+                MessageBox.Show("File has been encrypted.");
+        }
+
+
+        public static void DecryptFile(string inputFilePath, string outputFilePath)
+        {
+                byte[] encryptedData = File.ReadAllBytes(inputFilePath);
+                byte[] decryptedData = DESAlgorithm(encryptedData, false);
+                File.WriteAllBytes(outputFilePath, decryptedData);
+                MessageBox.Show("File has been decrypted.");
+        }
+
 
 
         //Metoda przerabia tekst wpisany przez uzytkownika na bloki bajtów
@@ -95,7 +138,7 @@ namespace DESAlgorithm
             }
             if (!toEncryption)
             {
-                processedData = removeMissingBits(processedData);
+                processedData = removeAddedBits(processedData);
             }
             return processedData;
         }
@@ -217,7 +260,7 @@ namespace DESAlgorithm
             return wynik.ToArray();
         }
 
-        //Metoda konwetuje tablice binarna na wartosc staloprzecinkowa
+        //Metoda konwetuje tablice binarna na liczbe całkowita
         public static int ConvertToInt(byte[] tab)
         {
             if (tab == null || tab.Length == 0)
@@ -289,7 +332,7 @@ namespace DESAlgorithm
         }
 
         //Metoda usuwa dodatkowe bajty dodane przez metode fillMissingBits
-        private static byte[] removeMissingBits(byte[] data)
+        private static byte[] removeAddedBits(byte[] data)
         {
             int howManyAdded = data[data.Length - 1];
             if (howManyAdded >= 1 && howManyAdded <= 8)
