@@ -126,7 +126,7 @@ namespace DESAlgorithm
         //Metoda przerabia tekst wpisany przez uzytkownika na bloki bajtów
         private static byte[] DESAlgorithm(byte[] data, bool toEncryption) 
         {
-            data = fillMissingBits(data);
+            data = fillMissingBytes(data);
             Trace.WriteLine(String.Join(" ",key));
             byte[] permutatedKey = Permutate(key, keyPermutation);
             byte[] leftKeyPart = new byte[permutatedKey.Length/2];
@@ -154,7 +154,7 @@ namespace DESAlgorithm
             }
             if (!toEncryption)
             {
-                processedData = removeAddedBits(processedData);
+                processedData = removeAddedBytes(processedData);
             }
             return processedData;
         }
@@ -330,7 +330,7 @@ namespace DESAlgorithm
         }
 
         //Metoda dodająca brakujące bajty jeśli wpisana przez uzytkownika wiadomosc nie jest wielokrotnosca 8 bajtow
-        private static byte[] fillMissingBits(byte[] data)
+        private static byte[] fillMissingBytes(byte[] data)
         {
             int howManyMissing = 8 - (data.Length % 8);
             if (howManyMissing == 8)
@@ -338,17 +338,17 @@ namespace DESAlgorithm
                 return data;
             }
 
-            byte[] filledBits = new byte[data.Length + howManyMissing];
-            Array.Copy(data, filledBits, data.Length);
-            for (int i = data.Length; i < filledBits.Length; i++)
+            byte[] filledBytes = new byte[data.Length + howManyMissing];
+            Array.Copy(data, filledBytes, data.Length);
+            for (int i = data.Length; i < filledBytes.Length; i++)
             {
-                filledBits[i] = (byte)howManyMissing;
+                filledBytes[i] = (byte)howManyMissing;
             }
-            return filledBits;
+            return filledBytes;
         }
 
-        //Metoda usuwa dodatkowe bajty dodane przez metode fillMissingBits
-        private static byte[] removeAddedBits(byte[] data)
+        //Metoda usuwa dodatkowe bajty dodane przez metode fillMissingBytes
+        private static byte[] removeAddedBytes(byte[] data)
         {
             if (data.Length > 0)
             {
